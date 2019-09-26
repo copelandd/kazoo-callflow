@@ -17,7 +17,7 @@
         ,handle_call/3
         ,handle_cast/2
         ,handle_info/2
-        ,handle_event/2
+        ,handle_event/3
         ,terminate/2
         ,code_change/3
         ]).
@@ -114,9 +114,10 @@ handle_info(_Info, State) ->
 %% @doc Handling AMQP event objects
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_event(kz_json:object(), kz_term:proplist()) -> gen_listener:handle_event_return().
-handle_event(_JObj, _State) ->
-    {'reply', []}.
+-spec handle_event(kz_json:object(), kz_term:proplist(), state()) -> gen_listener:handle_event_return().
+handle_event(JObj, Props, State) ->
+    Msg = kapi:delivery_message(JObj, Props),
+    handle_msg(Msg, State).
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_listener' when it is about to
@@ -141,3 +142,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+handle_msg({_, {'callflow', 'resume'}, _} = Msg, _State) ->
+    _ = cf_listener_sup:forward(Msg),
+    'ignore';
+
+handle_msg(_, _State) ->
+    {'reply', []}.
